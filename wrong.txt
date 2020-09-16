@@ -1,0 +1,13 @@
+
+
+Option Explicit
+
+Private Sub CancelButton_Click()
+Unload wrong
+wrongmsg = False
+End Sub
+
+Private Sub OKButton_Click()
+Unload wrong
+wrongmsg = False
+End Sub

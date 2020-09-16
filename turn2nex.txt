@@ -1,0 +1,5 @@
+Private Sub Command1_Click()
+Unload turn2nex
+Load Form2
+Form2.Show
+End Sub

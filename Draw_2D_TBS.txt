@@ -1,0 +1,366 @@
+
+Dim swApp As Object
+
+Dim Part As Object
+Dim boolstatus As Boolean
+Dim longstatus As Long, longwarnings As Long
+
+Dim Xaa(2) As Double, Yaa(2) As Double          '被替换的构件捕捉点的坐标，下标0代表首副，1代表尾副，2代表三副构件的 空 副
+
+Public Sub Change_Form()            '改变块的形态
+Set swApp = CreateObject("sldworks.application")
+Set Part = swApp.ActiveDoc
+
+Dim skSegment As Object
+boolstatus = Part.Extension.SelectByID2("Line1/Block1-1", "SKETCHSEGMENT", 0, 0, 0, False, 0, Nothing, 0)
+Part.SketchManager.EditSketchBlock          '进入块编辑状态
+If n = 1 Then
+    If m >= 1 And link(m).PorR(2) = 0 And (link(m).P_fixed = False And link(m).Xf = 0) Then    '判断是二副构件且无固定副
+        DLink_Free
+    ElseIf m >= 1 And link(m).PorR(2) <> 0 And (link(m).P_fixed = False And link(m).Xf = 0) Then               '判断为3副构件且无固定副
+        TLink_Free
+    ElseIf m >= 1 And link(m).PorR(2) = 0 And link(m).Xf Then       '判断是二副构件且 固定副 为R
+        DLink_Free
+    ElseIf m >= 1 And link(m).PorR(2) = 0 And link(m).P_fixed Then         '判断是二副构件且固定副为P
+        DLink_Free
+        If link(m).TBS Then
+            Del_Angular_Mark = True
+        End If
+    ElseIf m >= 1 And link(m).PorR(2) <> 0 And link(m).Xf Then       '判断是三副构件且固定副为R
+        TLink_Free
+    ElseIf m >= 1 And link(m).PorR(2) <> 0 And link(m).P_fixed Then         '判断是三副构件且固定副为P
+        TLink_Free
+        If link(m).TBS Then
+            Del_Angular_Mark = True
+        End If
+    End If
+End If
+Part.SketchManager.EndEditSketchBlock True  '退出块编辑状态
+End Sub
+
+Function Replace()              '应该不同构件会有不同的情况，还未考虑完
+    Dim Xaa(2) As Double, Yaa(2) As Double          '被替换的构件捕捉点的坐标
+    boolstatus = Part.Extension.SelectByID2("草图3", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)
+    Part.EditSketch
+    
+    If Xa(0) Then
+        boolstatus = Part.Extension.SelectByID2("D" & Xa(0) & "@草图3@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("D" & Xa(0) & "@草图3@求解模块1.SLDPRT")
+        Xaa(0) = myDimension.SystemValue
+        Part.ClearSelection2 True
+        boolstatus = Part.Extension.SelectByID2("D" & Ya(0) & "@草图3@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("D" & Ya(0) & "@草图3@求解模块1.SLDPRT")
+        Yaa(0) = myDimension.SystemValue
+        Part.ClearSelection2 True
+    ElseIf Xa(0) = 0 Then           '待求构件是第2个构件，Xa(0)和Ya(0)没有记录，但知道点（在第一构件是主动构件的情况下）
+        Xaa(0) = 0: Yaa(0) = link(0).L(0) / 1000
+    End If
+    
+    If Xa(1) > 0 Then
+        boolstatus = Part.Extension.SelectByID2("D" & Xa(1) & "@草图3@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("D" & Xa(1) & "@草图3@求解模块1.SLDPRT")
+        Xaa(1) = myDimension.SystemValue
+        Part.ClearSelection2 True
+        boolstatus = Part.Extension.SelectByID2("D" & Ya(1) & "@草图3@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("D" & Ya(1) & "@草图3@求解模块1.SLDPRT")
+        Yaa(1) = myDimension.SystemValue
+        Part.ClearSelection2 True
+    ElseIf Xa(1) < 0 Then
+        Xaa(1) = -Xa(1) / 1000: Yaa(1) = -Ya(1) / 1000
+    End If
+    If Xa(2) > 0 Then
+        boolstatus = Part.Extension.SelectByID2("D" & Xa(2) & "@草图3@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("D" & Xa(2) & "@草图3@求解模块1.SLDPRT")
+        Xaa(2) = myDimension.SystemValue
+        Part.ClearSelection2 True
+        boolstatus = Part.Extension.SelectByID2("D" & Ya(2) & "@草图3@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("D" & Ya(2) & "@草图3@求解模块1.SLDPRT")
+        Yaa(2) = myDimension.SystemValue
+        Part.ClearSelection2 True
+    ElseIf Xa(2) = 0 And TBS_is_TLink Then
+        boolstatus = Part.Extension.SelectByID2("Line1", "SKETCHSEGMENT", 10, 0, 0, False, 0, Nothing, 0)
+        boolstatus = Part.Extension.SelectByID2("Line" & Line_Get_Xaa2, "SKETCHSEGMENT", 0, 0, 0, True, 0, Nothing, 0)
+        Set myDisplayDim = Part.AddDimension2(10, 1, 0)      '添加上该直线的测试角度尺寸
+        Part.ClearSelection2 True
+        Dim Ang_of_Line_Get_Xaa2 As Double
+        boolstatus = Part.Extension.SelectByID2("D" & no_dimen + 1 & "@草图3@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("D" & no_dimen + 1 & "@草图3@求解模块1.SLDPRT")
+        Ang_of_Line_Get_Xaa2 = myDimension.SystemValue
+        Part.EditUndo2 1        '
+        Part.ClearSelection2 True
+        Xaa(2) = L_of_Line_Get_Xaa2 * Cos(Ang_of_Line_Get_Xaa2): Yaa(2) = L_of_Line_Get_Xaa2 * Sin(Ang_of_Line_Get_Xaa2) + link(0).L(0) / 1000
+    ElseIf Xa(2) < 0 Then
+        Xaa(2) = -Xa(2) / 1000: Yaa(2) = -Ya(2) / 1000
+    End If
+    Part.SketchManager.InsertSketch True
+    
+    If TBS_is_TLink = False Then '表明待求构件是二副构件时
+        For n = 1 To 3
+            boolstatus = Part.Extension.SelectByID2("草图" & n, "SKETCH", 0, 0, 0, False, 0, Nothing, 0)
+            Part.EditSketch
+            If Equal_tobe_Delete Then               '删除PR副/RP副长度为0时的与参考P副相等的约束
+                boolstatus = Part.Extension.SelectByID2("Line" & Equal_tobe_Delete, "SKETCHSEGMENT", 0.05, 0, 0, False, 0, Nothing, 0)
+                Part.SketchConstraintsDel 0, "sgSAMELENGTH"
+                Part.ClearSelection2 True
+            End If
+            If n < 3 Then       '在草图1/2的时候
+                boolstatus = Part.Extension.SelectByID2("Point7", "SKETCHPOINT", Xaa(0), Yaa(0), 0, False, 0, Nothing, 0)
+                If n = 1 Then
+                    boolstatus = Part.Extension.SelectByID2("Point3/Block1-1", "SKETCHPOINT", 0, 0, 0, True, 0, Nothing, 0)
+                ElseIf n = 2 Then
+                    boolstatus = Part.Extension.SelectByID2("Point3/Block1-3", "SKETCHPOINT", 0, 0, 0, True, 0, Nothing, 0)
+                End If
+                Part.SketchAddConstraints "sgCOINCIDENT"            '添加 替代 的第一个重合约束
+                Part.ClearSelection2 True
+                boolstatus = Part.Extension.SelectByID2("Point7", "SKETCHPOINT", Xaa(1), Yaa(1), 0, False, 0, Nothing, 0)
+                If n = 1 Then
+                    boolstatus = Part.Extension.SelectByID2("Point4/Block1-1", "SKETCHPOINT", 0, 0, 0, True, 0, Nothing, 0)
+                ElseIf n = 2 Then
+                    boolstatus = Part.Extension.SelectByID2("Point4/Block1-3", "SKETCHPOINT", 0, 0, 0, True, 0, Nothing, 0)
+                End If
+                Part.SketchAddConstraints "sgCOINCIDENT"            '添加 替代 的第二个重合约束
+                Part.ClearSelection2 True
+                boolstatus = Part.Extension.SelectByID2("D" & dimen_tobe_Delete(0) & "@草图" & n & "@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Part.EditDelete                         '删除二副构件的L(0)，其他情况还未考虑完全
+            Else                '草图3里
+                boolstatus = Part.Extension.SelectByID2("Point7", "SKETCHPOINT", Xaa(0), Yaa(0), 0, False, 0, Nothing, 0)
+                boolstatus = Part.Extension.SelectByID2("Point3/Block1-4", "SKETCHPOINT", 0, 0, 0, True, 0, Nothing, 0)
+                Part.SketchAddConstraints "sgCOINCIDENT"            '添加 替代 的第一个重合约束
+                Part.ClearSelection2 True
+                boolstatus = Part.Extension.SelectByID2("Point7", "SKETCHPOINT", Xaa(1), Yaa(1), 0, False, 0, Nothing, 0)
+                boolstatus = Part.Extension.SelectByID2("Point4/Block1-4", "SKETCHPOINT", 0, 0, 0, True, 0, Nothing, 0)
+                Part.SketchAddConstraints "sgCOINCIDENT"            '添加 替代 的第二个重合约束
+                Part.ClearSelection2 True
+                If dimen_tobe_Delete(0) > 0 Then
+                    boolstatus = Part.Extension.SelectByID2("D" & (dimen_tobe_Delete(0) + no_dimen_Shift) & "@草图" & n & "@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                    Part.EditDelete                         '删除RR构件的L(0)，其他情况还未考虑完全
+                End If
+            End If
+            Part.SketchManager.InsertSketch True
+        Next
+    Else                '待求构件是三副构件时
+        For n = 1 To 3
+            boolstatus = Part.Extension.SelectByID2("草图" & n, "SKETCH", 0, 0, 0, False, 0, Nothing, 0)
+            Part.EditSketch
+            If n < 3 Then       '在草图1/2的时候
+                boolstatus = Part.Extension.SelectByID2("Point7", "SKETCHPOINT", Xaa(0), Yaa(0), 0, False, 0, Nothing, 0)
+                If n = 1 Then
+                    boolstatus = Part.Extension.SelectByID2("Point7/Block1-1", "SKETCHPOINT", 0, 0, 0, True, 0, Nothing, 0)
+                ElseIf n = 2 Then
+                    boolstatus = Part.Extension.SelectByID2("Point7/Block1-3", "SKETCHPOINT", 0, 0, 0, True, 0, Nothing, 0)
+                End If
+                Part.SketchAddConstraints "sgCOINCIDENT"            '添加 替代 的第一个重合约束
+                Part.ClearSelection2 True
+                boolstatus = Part.Extension.SelectByID2("Point7", "SKETCHPOINT", Xaa(1), Yaa(1), 0, False, 0, Nothing, 0)
+                If n = 1 Then
+                    boolstatus = Part.Extension.SelectByID2("Point8/Block1-1", "SKETCHPOINT", 0, 0, 0, True, 0, Nothing, 0)
+                ElseIf n = 2 Then
+                    boolstatus = Part.Extension.SelectByID2("Point8/Block1-3", "SKETCHPOINT", 0, 0, 0, True, 0, Nothing, 0)
+                End If
+                Part.SketchAddConstraints "sgCOINCIDENT"            '添加 替代 的第二个重合约束
+                Part.ClearSelection2 True
+                boolstatus = Part.Extension.SelectByID2("Point7", "SKETCHPOINT", Xaa(2), Yaa(2), 0, False, 0, Nothing, 0)
+                If n = 1 Then
+                    boolstatus = Part.Extension.SelectByID2("Point4/Block1-1", "SKETCHPOINT", 0, 0, 0, True, 0, Nothing, 0)
+                ElseIf n = 2 Then
+                    boolstatus = Part.Extension.SelectByID2("Point4/Block1-3", "SKETCHPOINT", 0, 0, 0, True, 0, Nothing, 0)
+                End If
+                Part.SketchAddConstraints "sgCOINCIDENT"            '添加 替代 的第三个（尾副）重合约束
+                Part.ClearSelection2 True
+                boolstatus = Part.Extension.SelectByID2("D" & dimen_tobe_Delete(0) & "@草图" & n & "@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Part.EditDelete                         '删除三副构件的L(0)
+                boolstatus = Part.Extension.SelectByID2("D" & dimen_tobe_Delete(1) & "@草图" & n & "@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Part.EditDelete                         '删除三副构件的L(1)
+                boolstatus = Part.Extension.SelectByID2("D" & dimen_tobe_Delete(2) & "@草图" & n & "@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Part.EditDelete                         '删除三副构件的L(2)
+            Else        '在草图3的时候
+                boolstatus = Part.Extension.SelectByID2("Point7", "SKETCHPOINT", Xaa(0), Yaa(0), 0, False, 0, Nothing, 0)
+                boolstatus = Part.Extension.SelectByID2("Point7/Block1-4", "SKETCHPOINT", 0, 0, 0, True, 0, Nothing, 0)
+                Part.SketchAddConstraints "sgCOINCIDENT"            '添加 替代 的第一个重合约束
+                Part.ClearSelection2 True
+                boolstatus = Part.Extension.SelectByID2("Point7", "SKETCHPOINT", Xaa(1), Yaa(1), 0, False, 0, Nothing, 0)
+                boolstatus = Part.Extension.SelectByID2("Point8/Block1-4", "SKETCHPOINT", 0, 0, 0, True, 0, Nothing, 0)
+                Part.SketchAddConstraints "sgCOINCIDENT"            '添加 替代 的第二个重合约束
+                Part.ClearSelection2 True
+                boolstatus = Part.Extension.SelectByID2("Point7", "SKETCHPOINT", Xaa(2), Yaa(2), 0, False, 0, Nothing, 0)
+                boolstatus = Part.Extension.SelectByID2("Point4/Block1-4", "SKETCHPOINT", 0, 0, 0, True, 0, Nothing, 0)
+                Part.SketchAddConstraints "sgCOINCIDENT"            '添加 替代 的第三个（尾副）重合约束
+                Part.ClearSelection2 True
+                If no_dimen_Shift > 2 Then
+                    boolstatus = Part.Extension.SelectByID2("D" & (dimen_tobe_Delete(0) + no_dimen_Shift - 2 + no_dimen_Shift_A) & "@草图" & n & "@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Else
+                    boolstatus = Part.Extension.SelectByID2("D" & (dimen_tobe_Delete(0) + no_dimen_Shift) & "@草图" & n & "@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                End If
+                Part.EditDelete
+                boolstatus = Part.Extension.SelectByID2("D" & (dimen_tobe_Delete(1) + no_dimen_Shift) & "@草图" & n & "@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Part.EditDelete
+                boolstatus = Part.Extension.SelectByID2("D" & (dimen_tobe_Delete(2) + no_dimen_Shift) & "@草图" & n & "@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Part.EditDelete
+            End If
+        Part.SketchManager.InsertSketch True
+        Next
+    End If
+End Function
+
+Function TLink_Free()
+        '先补全三角形，再添加各长度
+        boolstatus = Part.Extension.SelectByID2("Point6", "SKETCHPOINT", -0.04895333756, 0, 0, False, 0, Nothing, 0)
+        Part.SketchAddConstraints "sgFIXED"
+        Part.ClearSelection2 True
+        boolstatus = Part.Extension.SelectByID2("Point6", "SKETCHPOINT", 0.05104666244, 0, 0, False, 0, Nothing, 0)
+        Part.SketchAddConstraints "sgFIXED"
+        Part.ClearSelection2 True
+        Set skSegment = Part.SketchManager.CreateLine(-0.05, -0.02, 0#, 0.001, -0.065, 0#)
+        Set skSegment = Part.SketchManager.CreateLine(0, -0.065, 0#, 0.06, -0.02, 0#)
+        boolstatus = Part.Extension.SelectByID2("Point1", "SKETCHPOINT", 0.001, -0.065, 0, False, 0, Nothing, 0)
+        boolstatus = Part.Extension.SelectByID2("Point1", "SKETCHPOINT", 0, -0.065, 0, True, 0, Nothing, 0)
+        Part.SketchAddConstraints "sgMERGEPOINTS"
+        Part.ClearSelection2 True
+        boolstatus = Part.Extension.SelectByID2("Point7", "SKETCHPOINT", -0.05, -0.02, 0, False, 0, Nothing, 0)
+        boolstatus = Part.Extension.SelectByID2("Point3", "SKETCHPOINT", -0.04895333756, 0, 0, True, 0, Nothing, 0)
+        Part.SketchAddConstraints "sgMERGEPOINTS"
+        boolstatus = Part.Extension.SelectByID2("Point4", "SKETCHPOINT", 0.05104666244, 0, 0, False, 0, Nothing, 0)
+        boolstatus = Part.Extension.SelectByID2("Point9", "SKETCHPOINT", 0.06204666244, 0, 0, True, 0, Nothing, 0)
+        Part.SketchAddConstraints "sgMERGEPOINTS"
+        Part.ClearSelection2 True
+        boolstatus = Part.Extension.SelectByID2("Point1", "SKETCHPOINT", -0.04895333756, 0, 0, False, 0, Nothing, 0)
+        Part.SketchConstraintsDel 0, "sgFIXED"
+        Part.ClearSelection2 True
+        boolstatus = Part.Extension.SelectByID2("Point1", "SKETCHPOINT", 0.05104666244, 0, 0, False, 0, Nothing, 0)
+        Part.SketchConstraintsDel 0, "sgFIXED"
+        Part.ClearSelection2 True
+        boolstatus = Part.Extension.SelectByID2("Line3", "SKETCHSEGMENT", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDisplayDim = Part.AddDimension2(-0.025, -0.0425, 0)
+        Part.ClearSelection2 True
+        boolstatus = Part.Extension.SelectByID2("Line4", "SKETCHSEGMENT", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDisplayDim = Part.AddDimension2(0.03, -0.0425, 0)
+        Part.ClearSelection2 True
+        
+        boolstatus = Part.Extension.SelectByID2("D1@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("D1@Block1@求解模块1.SLDPRT")
+        myDimension.SystemValue = link(m).L(2) / 1000                                   '设置杆长1
+        Part.ClearSelection2 True
+        boolstatus = Part.Extension.SelectByID2("D5@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("D5@Block1@求解模块1.SLDPRT")
+        myDimension.SystemValue = link(m).L(1) / 1000                                   '设置杆长2
+        Part.ClearSelection2 True
+        boolstatus = Part.Extension.SelectByID2("D4@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("D4@Block1@求解模块1.SLDPRT")
+        myDimension.SystemValue = link(m).L(0) / 1000                                   '设置杆长3
+        Part.ClearSelection2 True
+        boolstatus = Part.Extension.SelectByID2("D2@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("D2@Block1@求解模块1.SLDPRT")
+        myDimension.SystemValue = Xr / 1000
+        Part.ClearSelection2 True
+        boolstatus = Part.Extension.SelectByID2("D3@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("D3@Block1@求解模块1.SLDPRT")
+        myDimension.SystemValue = Yr / 1000
+        Part.ClearSelection2 True
+End Function
+Function DLink_Free()
+If link(m).PorR(0) = 2 Then        '判断首副为R
+    If link(m).PorR(1) = 2 Then     '判断为RR副
+                boolstatus = Part.Extension.SelectByID2("D1@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Set myDimension = Part.Parameter("D1@Block1@求解模块1.SLDPRT")
+                myDimension.SystemValue = link(m).L(0) / 1000                                   '设置杆长
+                Part.ClearSelection2 True
+                boolstatus = Part.Extension.SelectByID2("D2@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Set myDimension = Part.Parameter("D2@Block1@求解模块1.SLDPRT")
+                myDimension.SystemValue = Xr / 1000
+                Part.ClearSelection2 True
+                boolstatus = Part.Extension.SelectByID2("D3@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Set myDimension = Part.Parameter("D3@Block1@求解模块1.SLDPRT")
+                myDimension.SystemValue = Yr / 1000
+                Part.ClearSelection2 True
+    ElseIf link(m).PorR(1) = 1 Then         '判断为RP副
+        If link(m).L(0) = 0 Then            'R与P重合
+                boolstatus = Part.Extension.SelectByID2("D1@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Set myDimension = Part.Parameter("D1@Block1@求解模块1.SLDPRT")
+                myDimension.SystemValue = 0.045                                   '设置杆长
+                Part.ClearSelection2 True
+                boolstatus = Part.Extension.SelectByID2("D2@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Set myDimension = Part.Parameter("D2@Block1@求解模块1.SLDPRT")
+                myDimension.SystemValue = Xr / 1000
+                Part.ClearSelection2 True
+                boolstatus = Part.Extension.SelectByID2("D3@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Set myDimension = Part.Parameter("D3@Block1@求解模块1.SLDPRT")
+                myDimension.SystemValue = Yr / 1000
+                Part.ClearSelection2 True
+        Else                                'R与P不重合
+                boolstatus = Part.Extension.SelectByID2("D1@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Set myDimension = Part.Parameter("D1@Block1@求解模块1.SLDPRT")
+                myDimension.SystemValue = link(m).L(0) / 1000                                   '设置杆长
+                Part.ClearSelection2 True
+                boolstatus = Part.Extension.SelectByID2("D2@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Set myDimension = Part.Parameter("D2@Block1@求解模块1.SLDPRT")
+                myDimension.SystemValue = Xr / 1000
+                Part.ClearSelection2 True
+                boolstatus = Part.Extension.SelectByID2("D3@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Set myDimension = Part.Parameter("D3@Block1@求解模块1.SLDPRT")
+                myDimension.SystemValue = Yr / 1000
+                Part.ClearSelection2 True
+        End If
+    End If
+ElseIf link(m).PorR(0) = 1 Then           '判断首副为P
+    If link(m).PorR(1) = 2 Then         '为PR构件
+        If link(m).L(0) = 0 Then            'R与P重合
+                boolstatus = Part.Extension.SelectByID2("D1@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Set myDimension = Part.Parameter("D1@Block1@求解模块1.SLDPRT")
+                myDimension.SystemValue = 0.045                                   '设置杆长
+                Part.ClearSelection2 True
+                boolstatus = Part.Extension.SelectByID2("D2@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Set myDimension = Part.Parameter("D2@Block1@求解模块1.SLDPRT")
+                myDimension.SystemValue = Xr / 1000
+                Part.ClearSelection2 True
+                boolstatus = Part.Extension.SelectByID2("D3@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Set myDimension = Part.Parameter("D3@Block1@求解模块1.SLDPRT")
+                myDimension.SystemValue = Yr / 1000
+                Part.ClearSelection2 True
+        Else                                'R与P不重合
+                boolstatus = Part.Extension.SelectByID2("D1@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Set myDimension = Part.Parameter("D1@Block1@求解模块1.SLDPRT")
+                myDimension.SystemValue = link(m).L(0) / 1000                                   '设置杆长
+                Part.ClearSelection2 True
+                boolstatus = Part.Extension.SelectByID2("D2@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Set myDimension = Part.Parameter("D2@Block1@求解模块1.SLDPRT")
+                myDimension.SystemValue = Xr / 1000
+                Part.ClearSelection2 True
+                boolstatus = Part.Extension.SelectByID2("D3@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Set myDimension = Part.Parameter("D3@Block1@求解模块1.SLDPRT")
+                myDimension.SystemValue = Yr / 1000
+                Part.ClearSelection2 True
+        End If
+    ElseIf link(m).PorR(1) = 1 Then         '为PP构件
+            boolstatus = Part.Extension.SelectByID2("D1@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+            Set myDimension = Part.Parameter("D1@Block1@求解模块1.SLDPRT")
+            myDimension.SystemValue = 0.1                                   '设置杆长
+            Part.ClearSelection2 True
+            boolstatus = Part.Extension.SelectByID2("D2@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+            Set myDimension = Part.Parameter("D2@Block1@求解模块1.SLDPRT")
+            myDimension.SystemValue = Xr / 1000
+            Part.ClearSelection2 True
+            boolstatus = Part.Extension.SelectByID2("D3@Block1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+            Set myDimension = Part.Parameter("D3@Block1@求解模块1.SLDPRT")
+            myDimension.SystemValue = Yr / 1000
+            Part.ClearSelection2 True
+    End If
+End If
+End Function
+
+Function TLink_with_Pf()
+
+End Function
+
+Function TLink_with_Rf()
+
+End Function
+
+Function DLink_with_Pf()
+
+End Function
+
+Function DLink_with_Rf()
+
+End Function
+
+

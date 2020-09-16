@@ -1,0 +1,285 @@
+Dim swApp As Object
+
+Dim Part As Object
+Dim boolstatus As Boolean
+Dim longstatus As Long, longwarnings As Long
+Dim Del_Angular_Done As Boolean
+
+Private Sub Command1_Click()
+    If SD(1) = 0 And SD(2) = 0 Then     '只有一个速度驱动
+        If Text2 <> "" And Text5 <> "" Then
+            SDv(0) = Text2.Text * pi / 180: AD(0) = Text5.Text * pi / 180
+            Solve
+'            datatest.Text2 = sdv(0) & "*" & AD(0)
+'            datatest.Show
+        Else
+            MsgBox "数据不足"
+        End If
+    ElseIf SD(2) = 0 Then               '有两个速度驱动
+        If Text2 <> "" And Text3 <> "" And Text5 <> "" And Text6 <> "" Then
+            SDv(0) = Text2.Text * pi / 180: AD(0) = Text5.Text * pi / 180
+            SDv(1) = Text3.Text * pi / 180: AD(1) = Text6.Text * pi / 180
+            Solve
+        Else
+            MsgBox "数据不足"
+        End If
+    Else                                '有三个速度驱动
+        If Text2 <> "" And Text3 <> "" And Text4 <> "" And Text5 <> "" And Text6 <> "" And Text7 <> "" Then
+            SDv(0) = Text2.Text * pi / 180: AD(0) = Text5.Text * pi / 180
+            SDv(1) = Text3.Text * pi / 180: AD(1) = Text6.Text * pi / 180
+            SDv(2) = Text4.Text * pi / 180: AD(2) = Text7.Text * pi / 180
+            Solve
+        Else
+            MsgBox "数据不足"
+        End If
+    End If
+End Sub
+Function Solve()
+    dt = 0.5
+    Set swApp = CreateObject("sldworks.application")
+    Set Part = swApp.ActiveDoc
+    boolstatus = Part.Extension.SelectByID2("草图1", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)
+    Part.EditSketch
+    If SD(0) Then               '设置第一个主动位置尺寸为输入的尺寸
+        boolstatus = Part.Extension.SelectByID2("D" & SD(0) & "@草图1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("D" & SD(0) & "@草图1@求解模块1.SLDPRT")
+        myDimension.SystemValue = SDv(0)
+        Part.ClearSelection2 True
+    End If
+    If SD(1) Then               '设置第二个主动位置尺寸为输入的尺寸
+        boolstatus = Part.Extension.SelectByID2("D" & SD(1) & "@草图1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("D" & SD(1) & "@草图1@求解模块1.SLDPRT")
+        myDimension.SystemValue = SDv(1)
+        Part.ClearSelection2 True
+    End If
+    If SD(2) Then               '设置第三个主动位置尺寸为输入的尺寸
+        boolstatus = Part.Extension.SelectByID2("D" & SD(2) & "@草图1@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("D" & SD(2) & "@草图1@求解模块1.SLDPRT")
+        myDimension.SystemValue = SDv(2)
+        Part.ClearSelection2 True
+    End If
+    Part.SketchManager.InsertSketch True
+    
+    boolstatus = Part.Extension.SelectByID2("草图2", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)           '进入草图2准备更改第一个主动位置尺寸的值
+    Part.EditSketch
+    boolstatus = Part.Extension.SelectByID2("D" & SD(0) & "@草图2@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+    Set myDimension = Part.Parameter("D" & SD(0) & "@草图2@求解模块1.SLDPRT")
+    myDimension.SystemValue = SDv(0) + AD(0) * dt
+    Part.ClearSelection2 True
+    Part.SketchManager.InsertSketch True
+    boolstatus = Part.Extension.SelectByID2("草图3", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)           '进入草图3准备更改第一个主动位置尺寸的值
+    Part.EditSketch
+    boolstatus = Part.Extension.SelectByID2("D" & SD(0) & "@草图3@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+    Set myDimension = Part.Parameter("D" & SD(0) & "@草图3@求解模块1.SLDPRT")
+    myDimension.SystemValue = SDv(0) + 2 * AD(0) * dt
+    Part.ClearSelection2 True
+    Part.SketchManager.InsertSketch True
+    If SD(1) Then               '设置第二个主动位置尺寸在草图2、3的值
+        boolstatus = Part.Extension.SelectByID2("草图2", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)           '进入草图2准备更改第二个主动位置尺寸的值
+        Part.EditSketch
+        boolstatus = Part.Extension.SelectByID2("D" & SD(1) & "@草图2@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("D" & SD(1) & "@草图2@求解模块1.SLDPRT")
+        myDimension.SystemValue = SDv(1) + AD(1) * dt
+        Part.ClearSelection2 True
+        Part.SketchManager.InsertSketch True
+        boolstatus = Part.Extension.SelectByID2("草图3", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)           '进入草图3准备更改第二个主动位置尺寸的值
+        Part.EditSketch
+        If Xa(0) > SD(1) Then
+            boolstatus = Part.Extension.SelectByID2("D" & SD(1) & "@草图3@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+            Set myDimension = Part.Parameter("D" & SD(1) & "@草图3@求解模块1.SLDPRT")
+            myDimension.SystemValue = SDv(1) + 2 * AD(1) * dt
+            Part.ClearSelection2 True
+            Part.SketchManager.InsertSketch True
+        Else
+            boolstatus = Part.Extension.SelectByID2("D" & (SD(1) + no_dimen_Shift) & "@草图3@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+            Set myDimension = Part.Parameter("D" & (SD(1) + no_dimen_Shift) & "@草图3@求解模块1.SLDPRT")
+            myDimension.SystemValue = SDv(1) + 2 * AD(1) * dt
+            Part.ClearSelection2 True
+            Part.SketchManager.InsertSketch True
+        End If
+    End If
+    If SD(2) Then               '设置第三个主动位置尺寸在草图2、3的值
+        boolstatus = Part.Extension.SelectByID2("草图2", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)           '进入草图2准备更改第三个主动位置尺寸的值
+        Part.EditSketch
+        boolstatus = Part.Extension.SelectByID2("D" & SD(2) & "@草图2@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("D" & SD(2) & "@草图2@求解模块1.SLDPRT")
+        myDimension.SystemValue = SDv(2) + AD(2) * dt
+        Part.ClearSelection2 True
+        Part.SketchManager.InsertSketch True
+        boolstatus = Part.Extension.SelectByID2("草图3", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)           '进入草图3准备更改第三个主动位置尺寸的值
+        Part.EditSketch
+        If Xa(0) > SD(2) Then
+            boolstatus = Part.Extension.SelectByID2("D" & SD(2) & "@草图3@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+            Set myDimension = Part.Parameter("D" & SD(2) & "@草图3@求解模块1.SLDPRT")
+            myDimension.SystemValue = SDv(2) + 2 * AD(2) * dt
+            Part.ClearSelection2 True
+            Part.SketchManager.InsertSketch True
+        Else
+            boolstatus = Part.Extension.SelectByID2("D" & (SD(2) + no_dimen_Shift) & "@草图3@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+            Set myDimension = Part.Parameter("D" & (SD(2) + no_dimen_Shift) & "@草图3@求解模块1.SLDPRT")
+            myDimension.SystemValue = SDv(2) + 2 * AD(2) * dt
+            Part.ClearSelection2 True
+            Part.SketchManager.InsertSketch True
+        End If
+    End If
+    
+    
+    
+    boolstatus = Part.EditRebuild3()                '重建一次草图
+    boolstatus = Part.Extension.SelectByID2("草图4", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)
+    Part.EditUnsuppress2                            '解压缩草图4
+    Part.ClearSelection2 True
+    If Del_Angular_Mark And Del_Angular_Done = False Then
+        Del_Angular
+    End If
+    boolstatus = Part.EditRebuild3()                '重建一次草图
+    For i = 1 To 3
+        dt = 1 / 10 ^ i             '保持同步
+        boolstatus = Part.Extension.SelectByID2("草图2", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)           '进入草图2准备更改第一个主动位置尺寸的值
+        Part.EditSketch
+        boolstatus = Part.Extension.SelectByID2("D" & SD(0) & "@草图2@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("D" & SD(0) & "@草图2@求解模块1.SLDPRT")
+        myDimension.SystemValue = SDv(0) + AD(0) * dt
+        Part.ClearSelection2 True
+        Part.SketchManager.InsertSketch True
+        boolstatus = Part.EditRebuild3()                '重建一次草图
+        boolstatus = Part.Extension.SelectByID2("草图3", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)           '进入草图3准备更改第一个主动位置尺寸的值
+        Part.EditSketch
+        boolstatus = Part.Extension.SelectByID2("D" & SD(0) & "@草图3@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("D" & SD(0) & "@草图3@求解模块1.SLDPRT")
+        myDimension.SystemValue = SDv(0) + 2 * AD(0) * dt
+        Part.ClearSelection2 True
+        Part.SketchManager.InsertSketch True
+        boolstatus = Part.EditRebuild3()                '重建一次草图
+        boolstatus = Part.Extension.SelectByID2("草图4", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)           '进入草图4准备更改dt尺寸的值
+        Part.EditSketch
+        boolstatus = Part.Extension.SelectByID2("dt@草图4@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        Set myDimension = Part.Parameter("dt@草图4@求解模块1.SLDPRT")
+        myDimension.SystemValue = 1 / 10 ^ (3 + i)
+        Part.ClearSelection2 True
+        
+        Part.SketchManager.InsertSketch True
+        boolstatus = Part.EditRebuild3()                '重建一次草图
+        If SD(1) Then               '设置第二个主动位置尺寸在草图2、3的值
+            boolstatus = Part.Extension.SelectByID2("草图2", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)           '进入草图2准备更改第二个主动位置尺寸的值
+            Part.EditSketch
+            boolstatus = Part.Extension.SelectByID2("D" & SD(1) & "@草图2@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+            Set myDimension = Part.Parameter("D" & SD(1) & "@草图2@求解模块1.SLDPRT")
+            myDimension.SystemValue = SDv(1) + AD(1) * dt
+            Part.ClearSelection2 True
+            Part.SketchManager.InsertSketch True
+            boolstatus = Part.Extension.SelectByID2("草图3", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)           '进入草图3准备更改第二个主动位置尺寸的值
+            Part.EditSketch
+            If Xa(0) > SD(1) Then
+                boolstatus = Part.Extension.SelectByID2("D" & SD(1) & "@草图3@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Set myDimension = Part.Parameter("D" & SD(1) & "@草图3@求解模块1.SLDPRT")
+                myDimension.SystemValue = SDv(1) + 2 * AD(1) * dt
+                Part.ClearSelection2 True
+                Part.SketchManager.InsertSketch True
+            Else
+                boolstatus = Part.Extension.SelectByID2("D" & (SD(1) + no_dimen_Shift) & "@草图3@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Set myDimension = Part.Parameter("D" & (SD(1) + no_dimen_Shift) & "@草图3@求解模块1.SLDPRT")
+                myDimension.SystemValue = SDv(1) + 2 * AD(1) * dt
+                Part.ClearSelection2 True
+                Part.SketchManager.InsertSketch True
+            End If
+        End If
+        If SD(2) Then               '设置第三个主动位置尺寸在草图2、3的值
+            boolstatus = Part.Extension.SelectByID2("草图2", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)           '进入草图2准备更改第三个主动位置尺寸的值
+            Part.EditSketch
+            boolstatus = Part.Extension.SelectByID2("D" & SD(2) & "@草图2@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+            Set myDimension = Part.Parameter("D" & SD(2) & "@草图2@求解模块1.SLDPRT")
+            myDimension.SystemValue = SDv(2) + AD(2) * dt
+            Part.ClearSelection2 True
+            Part.SketchManager.InsertSketch True
+            boolstatus = Part.Extension.SelectByID2("草图3", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)           '进入草图3准备更改第三个主动位置尺寸的值
+            Part.EditSketch
+            If Xa(0) > SD(2) Then
+                boolstatus = Part.Extension.SelectByID2("D" & SD(2) & "@草图3@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Set myDimension = Part.Parameter("D" & SD(2) & "@草图3@求解模块1.SLDPRT")
+                myDimension.SystemValue = SDv(2) + 2 * AD(2) * dt
+                Part.ClearSelection2 True
+                Part.SketchManager.InsertSketch True
+            Else
+                boolstatus = Part.Extension.SelectByID2("D" & (SD(2) + no_dimen_Shift) & "@草图3@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+                Set myDimension = Part.Parameter("D" & (SD(2) + no_dimen_Shift) & "@草图3@求解模块1.SLDPRT")
+                myDimension.SystemValue = SDv(2) + 2 * AD(2) * dt
+                Part.ClearSelection2 True
+                Part.SketchManager.InsertSketch True
+            End If
+        End If
+        
+        boolstatus = Part.EditRebuild3()                '重建一次草图
+'        boolstatus = Part.EditRebuild3()                '重建一次草图
+'        boolstatus = Part.EditRebuild3()                '重建一次草图
+    Next
+    boolstatus = Part.EditRebuild3()                '重建一次草图
+    boolstatus = Part.Extension.SelectByID2("草图4", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)
+    Part.EditSketch
+    boolstatus = Part.Extension.SelectByID2("X@草图4@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+    Set myDimension = Part.Parameter("X@草图4@求解模块1.SLDPRT")
+    X = myDimension.SystemValue
+    Part.ClearSelection2 True
+    boolstatus = Part.Extension.SelectByID2("Y@草图4@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+    Set myDimension = Part.Parameter("Y@草图4@求解模块1.SLDPRT")
+    Y = myDimension.SystemValue
+    Part.ClearSelection2 True
+    boolstatus = Part.Extension.SelectByID2("D3@草图4@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+    Set myDimension = Part.Parameter("D3@草图4@求解模块1.SLDPRT")
+    Vel = myDimension.SystemValue
+    Part.ClearSelection2 True
+    boolstatus = Part.Extension.SelectByID2("D6@草图4@求解模块1.SLDPRT", "DIMENSION", -0.329737624101886, -2.75800223159255E-02, 0, False, 0, Nothing, 0)
+    Set myDimension = Part.Parameter("D6@草图4@求解模块1.SLDPRT")
+    Acc = myDimension.SystemValue
+    Part.ClearSelection2 True
+    '角加速度还没读取
+    Part.SketchManager.InsertSketch True
+    Text8.Text = "X=" & X * 1000 & " Y=" & Y * 1000
+    Text9.Text = Vel * 1000 & "mm/s"
+    Text12.Text = Acc * 1000 & "mm/s^2"
+    
+    
+    
+End Function
+
+Function Del_Angular()          '因固定移动副上的构件没有角速度，应当删去求角速度和角加速度相关的方程式驱动，否则无法求解
+boolstatus = Part.Extension.SelectByID2("草图4", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)
+Part.EditSketch
+boolstatus = Part.Extension.SelectByID2("e@草图4@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+Part.EditDelete
+boolstatus = Part.Extension.SelectByID2("w2@草图4@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+Part.EditDelete
+boolstatus = Part.Extension.SelectByID2("w1@草图4@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+Part.EditDelete
+boolstatus = Part.Extension.SelectByID2("dsa2@草图4@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+Part.EditDelete
+boolstatus = Part.Extension.SelectByID2("dsa1@草图4@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+Part.EditDelete
+boolstatus = Part.Extension.SelectByID2("D7@草图4@求解模块1.SLDPRT", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+Part.EditDelete
+boolstatus = Part.Extension.SelectByID2("Line11", "SKETCHSEGMENT", 0, 0, 0, True, 0, Nothing, 0)
+Part.EditDelete
+boolstatus = Part.Extension.SelectByID2("Line12", "SKETCHSEGMENT", 0, 0, 0, True, 0, Nothing, 0)
+Part.EditDelete
+
+
+Part.SketchManager.InsertSketch True
+Del_Angular_Done = True
+End Function
+
+Private Sub Form_Load()
+'SD(1) = 2: SD(2) = 2           '测试下面的初始化用
+    Text1 = "": Text2 = "": Text3 = "": Text4 = "": Text5 = "": Text6 = "": Text7 = "": Text8 = "": Text9 = "": Text10 = "": Text11 = "": Text12 = "": Text13 = "": Text14 = ""
+    If SD(1) = 0 And SD(2) = 0 Then     '只有一个速度驱动
+        Text2.BackColor = &HFF00&: Text5.BackColor = &HFF00&: Text3.Enabled = False: Text6.Enabled = False: Text4.Enabled = False: Text7.Enabled = False
+    
+    ElseIf SD(2) = 0 Then               '有两个速度驱动
+        Text2.BackColor = &HFF00&: Text5.BackColor = &HFF00&: Text3.BackColor = &HFF00&: Text6.BackColor = &HFF00&: Text4.Enabled = False: Text7.Enabled = False
+    
+    Else                                '有三个速度驱动
+        Text2.BackColor = &HFF00&: Text5.BackColor = &HFF00&: Text3.BackColor = &HFF00&: Text6.BackColor = &HFF00&: Text4.BackColor = &HFF00&: Text7.BackColor = &HFF00&
+    
+    End If
+End Sub
+
+

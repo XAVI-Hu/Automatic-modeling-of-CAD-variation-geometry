@@ -1,0 +1,84 @@
+Public m As Integer                     '已确定的运动构件的计数。注意，对应构件参数的数组下标一般为m-1
+Public n As Integer                     '指代草图序号
+Public num_of_ch As Integer             '复合铰链的序号累计，使用时：link(m).ch_num(x) = num_of_ch
+Public num_of_Empty As Integer          '空副的序号累计
+Public Xr As Double, Yr As Double       '构件上待求点的坐标
+Public TBS As Boolean                   'TBS（to be solved）代表待求构件的标记
+Public d_ref As Double                  '二维图中的绘图偏离长度
+Public Point_tail(1) As Double          '上一构件尾副点坐标，每完成一个构件更新一次，用于绘制下一构件时参考，（0）为X，（1）为Y
+'Public Point_tail_A(1) As Double        '在画TBS的时候辅助上个变量使用，用于添加捕捉点的辅助固定约束的删除
+Public wrongmsg As Boolean              '一个保证用户输入未完成时不启动绘图的条件
+Public LineX As Integer                 '记录画了多少条线的变量
+'Public Empty_num As Integer             '记录画了多少多少个可被配合的空余副
+Public LineX_not_minus As Integer       '记录因为End_Link_Judge过程导致的在草图1、2里应当减去但没有及时减去的线段累计量
+Public IsDimension() As Boolean         '记录某一直线是否添加了尺寸,Redim preserve IsDimesion(LineX)。若是P副的直线直接当作添加了尺寸
+Public no_dimen As Integer              '记录添加了多少个尺寸的变量
+Public no_dimen_not_minus As Integer    '记录因为End_Link_Judge过程导致的在草图1、2里应当减去但没有及时减去的尺寸累计量
+Public pi As Double                     '圆周率
+Public undimen() As Double              '表示未添加尺寸直线的长度，在补加尺寸的时候用，配合LineX使用
+Public Point_undimen_ref() As Double    '用于直线补加尺寸位置的参考点，重定义为二维（1，LineX）
+Public Is_Empty_PorR   As Boolean       '用于判断跳转到的空副是P还是R，使得在下一运动副首副自动变为正确的运动副。True代表P，False代表R
+Public Line_Empty As Integer            '表示用于绘图时与空余P副配合时，该空余P副的直线序号
+Public UorT As Boolean                  '用于指示P副起始二副构件竖着画还是横着画（U，对应True，竖着画；T，对应False，横着画）
+Public TMP_fixed(1) As Double           '从空副起始的PR构件的尾副暂时固定点
+Public Isch_TMP_fixed As Boolean        '判断该暂时固定点是不是复合铰链
+Public SD(2) As Integer                 '记录的序号主动位置尺寸,下标0为第一个，1为第二个，2为第三个，按照构造的顺序
+Public no_of_SD As Integer              '用于记录记录了多少个SD
+Public SDa(2) As Integer                '主动位置尺寸的辅助尺寸，用于最后调整对应的位置尺寸相对于是x轴的角度
+Public Xa(2) As Integer, Ya(2) As Integer
+                                        '用于“替换”待求构件的辅助尺寸（坐标变量），下标0代表首副，1代表尾副，2代表三副构件的第二个副
+Public Line_Get_Xaa2 As Integer         '辅助求得Xaa(2)的直线序号
+Public L_of_Line_Get_Xaa2 As Double     '相应的直线长度（长度1）
+Public TBS_is_TLink As Boolean          '待求构件是二副还是三副构件，True为三副
+Public To_Be_Delete(2) As Integer       '待求构件加上去之后删除原构件长度尺寸，最多3个长度，不删角度
+Public no_dimen_Shift As Integer        '记录因待求构件添加的辅助尺寸个数，草图1/2的no_dimen减去该值，使得草图1/2不出错，草图3中应加回来
+Public dimen_tobe_Delete(2) As Integer  '直接数据是记录草图1/2中应当被删除的长度尺寸量，草图3中应加上no_dimen_Shift。对于三副，下标0为长度3；下标1为长度2，下标2为长度1。对于二副，只有下标0的长度1
+Public Get_dimen As Integer             '用于记录三副待求构件的补加尺寸那条直线，或许有两条，在补加尺寸时可据此找到对应的尺寸序号
+Public Equal_tobe_Delete As Integer     '表示被替代的长度为0的RP/PR构件的直线序号，要删除的是其与参考P副长度相等的约束
+Public To_Be_Replace As Boolean         '表明是否可以替换的标记，True则可以
+Public SDv(2) As Double                 '表示主动位置尺寸的角度变量，变量名里的数字对应草图序号，下标对应第几个主动尺寸
+Public AD(2) As Double                  '表示驱动速度的变量，下标0是第一个，下标2是第三个
+Public dt As Double                     '微小时间间隔
+                                                       
+Public Type MotionPart
+    D As Double
+    alpha As Double                 '固定P副的位置表示变量
+    P_fixed As Boolean              '固定P副的判断标记，因为D和alpha可能同时为0，不能作为判断条件
+    Xf As Double
+    Yf As Double                    '固定R副的位置表示变量
+    L(2) As Double
+    beta(2) As Double               '运动构件的自身参数（长度，P副的角度），对于三副，下标0为长度3，夹角3；下标1为长度2，夹角2，下标2为长度1，夹角1。对于二副，只有下标0的长度1和夹角1（PP副时）
+    fixed(1) As Boolean             '固定副是②（下标为0）还是③（下标为1），只有三副构件会用到
+    ch(1) As Boolean                '复合铰链标记,下标0代表三副构件的第二副，下标1代表尾副，也就是二副最多只用到ch(1)
+    ch_num(1) As Integer            '用于指代复合铰链的序号，下标0代表三副构件的第二副，下标1代表尾副；若其值为0，则表示不是复合铰链
+    ch_junction_num As Integer      '用于表示与已有的复合铰链配合的复合铰链序号，与ch_num()指代的位置一致
+    Point_ch(1, 1) As Double        '复合铰链被暂时固定的坐标，下标第一维的0代表三副构件的第二副，下标1代表尾副；第二维的下标0代表X，1代表Y
+    PE As Boolean
+    RE As Boolean                   '三副构件的空副标记
+    Point_Empty(1) As Double        '空副被暂时固定的坐标，·(0)为x坐标，·(1)为y坐标
+    Empty_num As Integer            '用于指代空副的序号
+    Empty_junction_num As Integer   '用于表示与已有的空副配合的空副序号，与Empty_num指代的位置一致
+    PorR(2) As Integer               '运动副类型记录，下标0代表首副，下标1代表尾副，下标2代表三副构件的第二个副。值的情况：0为不存在，1为P，2为R
+    Point_unset(1) As Double        '暂时未完全确定好几何约束的点，主要是三副构件首副为P副的点
+    Line_Unset As Integer           '表示此构件为三副构件且首副为P时，此构件首副点未与上一构件重合的直线序号，记录以在补加约束的时候用
+    Line_Empty As Integer           '表示用于记录空余P副的直线序号的变量
+    Line_Unfixed As Integer         '表示此构件为三副构件且尾副尾固定P副时，该固定P副的直线序号，在最后补加固定位置时使用
+    Active As Boolean               '如为True，表示此构件是主动构件
+    TBS As Boolean                  '表明此构件是否是待求构件，是为True
+End Type
+Public link() As MotionPart                  'link()表示构件数组
+
+Public X As Double, Y As Double                   '待求点的位置结果
+Public Vel As Double, gama As Double              '待求点速度大小和方向角
+Public Acc As Double, delta As Double             '待求点加速度大小和方向角
+Sub main()
+LineX = 3                           '文件中前三个草图都已经有3条线
+d_ref = 0.05
+pi = 3.14159265359
+TBS = False
+ReDim Preserve link(0)
+link(0).PorR(0) = 2                 '首副曲柄中心为R副
+
+Form1.Show
+End Sub
+

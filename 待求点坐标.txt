@@ -1,0 +1,43 @@
+
+Option Explicit
+
+Private Sub CancelButton_Click()
+    Xr = 0
+    Yr = 0
+    Form2.Check1.Value = 0
+    Unload 待求点坐标
+End Sub
+
+Private Sub Form_Load()
+ OKButton.Enabled = False
+End Sub
+
+Private Sub OKButton_Click()
+    Xr = Text1
+    Yr = Text2
+    TBS = True
+    If Form2.Option2 Then
+        TBS_is_TLink = True
+    ElseIf Form2.Option1 Then
+        TBS_is_TLink = False
+    End If
+    Unload 待求点坐标
+End Sub
+
+Private Sub Text1_Change()
+ If Text1.Text <> "" And Text2.Text <> "" Then
+    OKButton.Enabled = True
+ End If
+ If Text1.Text = "" Or Text2.Text = "" Then
+    OKButton.Enabled = False
+ End If
+End Sub
+
+Private Sub Text2_Change()
+ If Text1.Text <> "" And Text2.Text <> "" Then
+    OKButton.Enabled = True
+ End If
+ If Text1.Text = "" Or Text2.Text = "" Then
+    OKButton.Enabled = False
+ End If
+End Sub
